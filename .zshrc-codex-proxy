@@ -1,0 +1,38 @@
+# Codex-Claude Proxy Integration
+# Source this in your ~/.zshrc: source ~/Documents/에이전트/infiniteAgent/self-evolving-agent-system/.zshrc-codex-proxy
+
+# Claude Code with Codex models (프록시 자동 시작)
+ccy() {
+  # 프록시가 실행 중인지 확인
+  if ! lsof -i:8082 -P | grep -q LISTEN; then
+    echo "🚀 Starting Codex proxy..."
+    (cd /Users/seohun/Documents/codex-claude-proxy && .venv/bin/python server.py &>/dev/null &)
+    sleep 2
+  fi
+
+  # Claude Code 실행
+  ANTHROPIC_AUTH_TOKEN="sk-proxy-codex" \
+  ANTHROPIC_BASE_URL=http://localhost:8082 \
+  claude --dangerously-skip-permissions "$@"
+}
+
+# 프록시 관리
+codex-proxy-start() {
+  cd /Users/seohun/Documents/codex-claude-proxy && .venv/bin/python server.py &
+  echo "✅ Proxy started on port 8082"
+}
+
+codex-proxy-stop() {
+  lsof -ti:8082 | xargs kill -9 2>/dev/null && echo "🛑 Proxy stopped" || echo "⚠️  Proxy not running"
+}
+
+codex-proxy-status() {
+  if lsof -i:8082 -P | grep -q LISTEN; then
+    echo "✅ Proxy running on port 8082"
+  else
+    echo "❌ Proxy not running"
+  fi
+}
+
+# 단축 명령어
+alias cpstop='codex-proxy-stop'

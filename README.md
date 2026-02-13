@@ -1,5 +1,7 @@
 # Codex-Claude Proxy
 
+[한글 문서 (Korean)](README.ko.md)
+
 Use OpenAI Codex models in Claude Code using your ChatGPT Plus/Pro subscription OAuth token.
 
 This proxy translates Anthropic's Messages API format into ChatGPT's Responses API format, allowing Claude Code to communicate with OpenAI's Codex backend using your existing ChatGPT subscription — no separate API credits needed.
@@ -70,7 +72,26 @@ This is required so Claude Code uses the proxy instead of its native Anthropic a
 
 ### 4. Start the Proxy
 
-**Option A: Proxy only (recommended for seeing logs)**
+**Option A: Quick Setup with zsh alias (Recommended)**
+
+1. **Copy the zsh config:**
+
+```bash
+cp .zshrc-codex-proxy ~/.zshrc-codex-proxy
+echo 'source ~/.zshrc-codex-proxy' >> ~/.zshrc
+source ~/.zshrc
+```
+
+2. **Usage:**
+
+```bash
+ccy       # Auto-start proxy + launch Claude Code with Codex models
+cpstop    # Stop proxy if needed
+```
+
+The `ccy` command automatically starts the proxy if it's not running, or uses the existing one if it's already running.
+
+**Option B: Manual execution (recommended for seeing logs)**
 
 Terminal 1 — Start proxy:
 ```bash
@@ -83,7 +104,7 @@ Terminal 2 — Start Claude Code:
 ANTHROPIC_AUTH_TOKEN="sk-proxy" ANTHROPIC_BASE_URL=http://localhost:8082 claude
 ```
 
-**Option B: All-in-one with start.sh**
+**Option C: All-in-one with start.sh**
 
 ```bash
 ./start.sh claude
