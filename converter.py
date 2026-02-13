@@ -58,11 +58,13 @@ def anthropic_to_responses(body: dict) -> dict:
     tools = body.get("tools")
     if tools:
         result["tools"] = [_convert_tool(t) for t in tools]
-        result["tool_choice"] = "auto"
+        # Codex CLI처럼 도구 사용을 강제하기 위해 "required" 시도
+        result["tool_choice"] = "required"
 
         # 도구 변환 로깅
         tool_names = [t.get("name", "unknown") for t in tools]
         print(f"[converter] 🔧 Converting {len(tools)} tools: {', '.join(tool_names)}")
+        print(f"[converter] 🔧 tool_choice set to: required")
 
     return result
 
