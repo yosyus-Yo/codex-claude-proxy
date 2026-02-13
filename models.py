@@ -6,7 +6,7 @@ import os
 # - gpt-5.3-codex-spark  : 실시간 빠른 응답
 # - gpt-5.2-codex        : 이전 버전
 BIG_MODEL = os.getenv("CODEX_BIG_MODEL", "gpt-5.3-codex")
-SMALL_MODEL = os.getenv("CODEX_SMALL_MODEL", "gpt-5.3-codex-spark")
+SMALL_MODEL = os.getenv("CODEX_SMALL_MODEL", "gpt-5.3-codex")
 THINKING_MODEL = os.getenv("CODEX_THINKING_MODEL", "gpt-5.3-codex")
 
 

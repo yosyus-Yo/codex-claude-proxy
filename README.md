@@ -24,7 +24,9 @@ ChatGPT Backend  <──(Responses API + OAuth)──  Proxy
 |---------------------|-------------|
 | claude-opus-* | gpt-5.3-codex |
 | claude-sonnet-* | gpt-5.3-codex |
-| claude-haiku-* | gpt-5.3-codex-spark |
+| claude-haiku-* | gpt-5.3-codex |
+
+> All models default to `gpt-5.3-codex`. You can change this — see [Custom Model Mapping](#custom-model-mapping).
 
 ## Prerequisites
 
@@ -121,11 +123,31 @@ Then start Claude Code normally without environment variables.
 
 ### Custom Model Mapping
 
-Override default models via environment variables:
+All models default to `gpt-5.3-codex`. Override via environment variables or by editing `models.py` directly:
 
 ```bash
-CODEX_BIG_MODEL=gpt-5.2-codex .venv/bin/python server.py
+# Use different models per role
+CODEX_BIG_MODEL=gpt-5.2-codex \
+CODEX_SMALL_MODEL=gpt-5.3-codex-spark \
+CODEX_THINKING_MODEL=gpt-5.3-codex \
+.venv/bin/python server.py
 ```
+
+Or edit `models.py`:
+
+```python
+BIG_MODEL = os.getenv("CODEX_BIG_MODEL", "gpt-5.3-codex")       # sonnet → this
+SMALL_MODEL = os.getenv("CODEX_SMALL_MODEL", "gpt-5.3-codex")   # haiku → this
+THINKING_MODEL = os.getenv("CODEX_THINKING_MODEL", "gpt-5.3-codex")  # opus → this
+```
+
+**Available Codex models:**
+
+| Model | Description |
+|-------|-------------|
+| `gpt-5.3-codex` | Most capable coding model |
+| `gpt-5.3-codex-spark` | Faster, lighter responses |
+| `gpt-5.2-codex` | Previous version |
 
 ## Project Structure
 
@@ -187,14 +209,6 @@ The proxy auto-refreshes expired OAuth tokens using the refresh token in `~/.cod
 ### Claude Code shows "Opus 4.6" or "Sonnet 4.5" model name
 
 This is Claude Code's UI displaying its configured model name. The actual model being used is the Codex model shown in proxy logs (e.g., `gpt-5.3-codex`).
-
-## Supported ChatGPT Codex Models
-
-| Model | Description |
-|-------|-------------|
-| `gpt-5.3-codex` | Most capable coding model |
-| `gpt-5.3-codex-spark` | Fast response model |
-| `gpt-5.2-codex` | Previous version |
 
 ## License
 
