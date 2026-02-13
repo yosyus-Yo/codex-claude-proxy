@@ -29,31 +29,30 @@ def anthropic_to_responses(body: dict) -> dict:
     # 도구가 있을 때 도구 사용 지시를 맨 앞에 추가 (가장 먼저 보도록)
     if body.get("tools"):
         tool_instructions = (
-            "=== CRITICAL TOOL USAGE PROTOCOL (READ THIS FIRST) ===\n"
-            "You have tools available. When the user asks you to perform ANY action:\n"
-            "1. FIRST call the appropriate tool immediately\n"
-            "2. THEN provide your response after seeing the tool's result\n"
+            "=== MANDATORY TOOL USAGE PROTOCOL - FOLLOW EXACTLY ===\n"
             "\n"
-            "DO NOT just say \"I will read the file\" - actually call the Read tool NOW.\n"
-            "DO NOT explain what you would do - DO IT by calling tools.\n"
+            "ABSOLUTE RULE: When ANY task requires action, you MUST call tools IMMEDIATELY.\n"
+            "- If asked to read → call Read tool FIRST, then respond\n"
+            "- If asked to search → call Grep/Glob tool FIRST, then respond\n"
+            "- If asked to run → call Bash tool FIRST, then respond\n"
+            "- If asked to edit → call Edit tool FIRST, then respond\n"
+            "- If asked to create → call Write tool FIRST, then respond\n"
             "\n"
-            "Available tools and when to use them:\n"
-            "- Read: When asked to read, view, check, or examine files\n"
-            "- Glob/Grep: When asked to find, search, or locate files or code\n"
-            "- Bash: When asked to run commands, execute scripts, or check system state\n"
-            "- Edit: When asked to modify, change, or update existing files\n"
-            "- Write: When asked to create new files or save content\n"
+            "FORBIDDEN BEHAVIOR:\n"
+            "❌ \"I will read the file\" WITHOUT calling Read\n"
+            "❌ \"Let me check\" WITHOUT calling Grep\n"
+            "❌ \"I can help you\" WITHOUT calling tools\n"
+            "❌ Explaining what you would do WITHOUT doing it\n"
             "\n"
-            "Example correct behavior:\n"
-            "User: \"read the README file\"\n"
-            "You: [IMMEDIATELY call Read tool with path]\n"
+            "REQUIRED BEHAVIOR:\n"
+            "✅ User: \"read config.json\" → You: [CALL Read tool immediately]\n"
+            "✅ User: \"find all .ts files\" → You: [CALL Glob tool immediately]\n"
+            "✅ User: \"check git status\" → You: [CALL Bash tool immediately]\n"
             "\n"
-            "Example WRONG behavior (DO NOT do this):\n"
-            "User: \"read the README file\"\n"
-            "You: \"I'll read the README file for you...\" [WITHOUT calling tool] ❌\n"
+            "This is NOT optional. This is NOT a suggestion. This is MANDATORY.\n"
+            "Failure to call tools when needed = task failure.\n"
             "\n"
-            "Remember: Actions speak louder than words. Use tools, don't just talk about using them.\n"
-            "=== END CRITICAL PROTOCOL ===\n\n"
+            "=== END MANDATORY PROTOCOL ===\n\n"
         )
         system_content = tool_instructions + (system_content or "")
 
@@ -105,6 +104,9 @@ def anthropic_to_responses(body: dict) -> dict:
         else:
             print(f"[converter]   instructions: {inst}")
     print(f"[converter]   input items: {len(result['input'])} items")
+
+    # 실제 user message 찾기 및 출력
+    actual_user_message = None
     for i, item in enumerate(result['input']):
         item_type = item.get('type', 'unknown')
         print(f"[converter]     [{i}] type: {item_type}, role: {item.get('role', 'N/A')}")
@@ -116,6 +118,16 @@ def anthropic_to_responses(body: dict) -> dict:
                     text = c.get('text', '')
                     preview = text[:100] if len(text) > 100 else text
                     print(f"[converter]         {c_type}: {preview}...")
+                    # system-reminder가 아닌 실제 메시지 찾기
+                    if c_type == 'input_text' and not text.startswith('<system-reminder>') and not text.startswith('<command-'):
+                        if actual_user_message is None or len(text) > len(actual_user_message):
+                            actual_user_message = text
+
+    if actual_user_message:
+        print(f"\n[converter] 💬 ACTUAL USER MESSAGE:")
+        print(f"[converter]   {actual_user_message[:300]}")
+        print()
+
     if result.get("tools"):
         print(f"[converter]   tools: {len(result['tools'])} tools defined")
         print(f"[converter]   tool_choice: {result.get('tool_choice', 'N/A')}")
