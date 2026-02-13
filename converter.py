@@ -60,15 +60,7 @@ def anthropic_to_responses(body: dict) -> dict:
         )
         system_content = (system_content or "") + tool_instructions
 
-    # system 메시지를 input의 첫 번째 항목으로 추가 (공식 Responses API 형식)
-    if system_content:
-        input_items.append({
-            "type": "message",
-            "role": "system",
-            "content": [{"type": "input_text", "text": system_content}],
-        })
-
-    # 메시지 변환
+    # 메시지 변환 (system은 input에 넣지 않고 instructions로 사용)
     for msg in body.get("messages", []):
         items = _convert_message(msg)
         input_items.extend(items)
@@ -80,8 +72,8 @@ def anthropic_to_responses(body: dict) -> dict:
         "store": False,
     }
 
-    # instructions 파라미터 제거 (공식 Responses API에는 없음)
-    # system 메시지는 이미 input에 포함됨
+    # Codex API는 instructions 필수 (일반 Responses API와 다름)
+    result["instructions"] = system_content or "You are a helpful assistant."
 
     # tools 변환
     tools = body.get("tools")
@@ -93,7 +85,7 @@ def anthropic_to_responses(body: dict) -> dict:
         tool_names = [t.get("name", "unknown") for t in tools]
         print(f"[converter] 🔧 Converting {len(tools)} tools: {', '.join(tool_names)}")
         print(f"[converter] 🔧 tool_choice set to: auto")
-        print(f"[converter] 🔧 system message added to input (not instructions)")
+        print(f"[converter] 🔧 instructions required by Codex API (not in input)")
 
     return result
 
