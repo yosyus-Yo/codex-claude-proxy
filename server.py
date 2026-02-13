@@ -48,35 +48,63 @@ async def health():
     return {"status": "ok", "token_expired": token_mgr.is_expired()}
 
 
+# 요청 카운터 (디버깅용)
+_count_tokens_counter = 0
+
 @app.post("/v1/messages/count_tokens")
 async def count_tokens(request: Request):
     """토큰 카운팅 (대략적인 추정)"""
+    global _count_tokens_counter
+    _count_tokens_counter += 1
+
     body = await request.json()
 
     # 간단한 토큰 추정: 1 token ≈ 4 characters
     total_chars = 0
+    system_chars = 0
+    messages_chars = 0
 
     # system 메시지
     system = body.get("system", "")
     if isinstance(system, str):
-        total_chars += len(system)
+        system_chars = len(system)
+        total_chars += system_chars
     elif isinstance(system, list):
         for block in system:
             if block.get("type") == "text":
-                total_chars += len(block.get("text", ""))
+                block_len = len(block.get("text", ""))
+                system_chars += block_len
+                total_chars += block_len
 
     # messages
+    msg_count = len(body.get("messages", []))
     for msg in body.get("messages", []):
         content = msg.get("content", "")
         if isinstance(content, str):
-            total_chars += len(content)
+            msg_len = len(content)
+            messages_chars += msg_len
+            total_chars += msg_len
         elif isinstance(content, list):
             for block in content:
                 if block.get("type") == "text":
-                    total_chars += len(block.get("text", ""))
+                    block_len = len(block.get("text", ""))
+                    messages_chars += block_len
+                    total_chars += block_len
 
     # 대략적인 토큰 수 추정
     input_tokens = total_chars // 4
+
+    # 상세 로깅
+    print(f"[proxy] 🔢 count_tokens #{_count_tokens_counter} | "
+          f"system: {system_chars//4}t | messages: {msg_count}개({messages_chars//4}t) | "
+          f"total: {input_tokens}t")
+
+    # system 미리보기 (처음 100자)
+    if system_chars > 0:
+        system_preview = (system[:100] if isinstance(system, str)
+                         else system[0].get("text", "")[:100] if system else "")
+        if system_chars > 100:
+            print(f"[proxy]    system preview: {system_preview}...")
 
     return {"input_tokens": input_tokens}
 
