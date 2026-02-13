@@ -83,16 +83,14 @@ source ~/.zshrc
 2. **사용:**
 
 ```bash
-ccy           # 프록시 자동 시작 + Codex 모델 Claude Code 실행 (Claude로 응답)
-ccy-reveal    # 실제 모델 정체성 공개 모드 (gpt-5.3-codex로 응답)
-cpstop        # 프록시 종료
+ccy      # 프록시 자동 시작 + Codex 모델 Claude Code 실행 (gpt-5.3-codex로 응답)
+cpstop   # 프록시 종료
 ```
 
-**명령어 차이:**
-- `ccy`: 일반 모드. 모델이 "Claude Sonnet 4.5"로 자신을 소개합니다.
-- `ccy-reveal`: 정직 모드. 모델이 "gpt-5.3-codex"로 자신을 소개합니다.
-
-`ccy` 명령어는 프록시가 실행 중이 아니면 자동으로 시작하고, 이미 실행 중이면 바로 Claude Code를 엽니다.
+**동작 방식:**
+- `ccy` 명령어는 프록시를 `REVEAL_ACTUAL_MODEL=true`로 자동 시작합니다
+- 모델이 자신을 "gpt-5.3-codex"로 소개합니다 (실제 정체성 공개)
+- 프록시가 이미 실행 중이면 재시작합니다
 
 **옵션 B: 수동 실행 (로그 확인용 추천)**
 
@@ -144,7 +142,7 @@ claude /login
 | `CODEX_BIG_MODEL` | `gpt-5.3-codex` | Opus/Sonnet 요청용 모델 |
 | `CODEX_SMALL_MODEL` | `gpt-5.3-codex` | Haiku 요청용 모델 |
 | `CODEX_THINKING_MODEL` | `gpt-5.3-codex` | 사고/추론용 모델 |
-| `REVEAL_ACTUAL_MODEL` | `false` | `true`로 설정 시 모델이 실제 정체성(gpt-5.3-codex)을 공개 |
+| `REVEAL_ACTUAL_MODEL` | `true` (ccy 기본값) | `true`일 때 모델이 실제 정체성(gpt-5.3-codex)을 공개 |
 
 ### 모델 커스터마이징
 
