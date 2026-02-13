@@ -48,6 +48,39 @@ async def health():
     return {"status": "ok", "token_expired": token_mgr.is_expired()}
 
 
+@app.post("/v1/messages/count_tokens")
+async def count_tokens(request: Request):
+    """토큰 카운팅 (대략적인 추정)"""
+    body = await request.json()
+
+    # 간단한 토큰 추정: 1 token ≈ 4 characters
+    total_chars = 0
+
+    # system 메시지
+    system = body.get("system", "")
+    if isinstance(system, str):
+        total_chars += len(system)
+    elif isinstance(system, list):
+        for block in system:
+            if block.get("type") == "text":
+                total_chars += len(block.get("text", ""))
+
+    # messages
+    for msg in body.get("messages", []):
+        content = msg.get("content", "")
+        if isinstance(content, str):
+            total_chars += len(content)
+        elif isinstance(content, list):
+            for block in content:
+                if block.get("type") == "text":
+                    total_chars += len(block.get("text", ""))
+
+    # 대략적인 토큰 수 추정
+    input_tokens = total_chars // 4
+
+    return {"input_tokens": input_tokens}
+
+
 @app.post("/v1/messages")
 async def messages(request: Request):
     """Anthropic Messages API → ChatGPT Responses API 프록시"""
