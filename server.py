@@ -97,6 +97,20 @@ async def messages(request: Request):
 
     print(f"[proxy] {original_model} → {mapped_model} | stream={is_stream}")
 
+    # 요청에 tools가 있는지 확인
+    if "tools" in resp_body:
+        print(f"[proxy] 🔧 Tools available: {len(resp_body['tools'])} tools")
+
+    # 마지막 메시지 확인
+    if body.get("messages"):
+        last_msg = body["messages"][-1]
+        content = last_msg.get("content", "")
+        if isinstance(content, str):
+            preview = content[:100]
+        else:
+            preview = str(content)[:100]
+        print(f"[proxy] 📝 Last message: {preview}...")
+
     headers = _chatgpt_headers()
 
     if is_stream:
@@ -212,6 +226,10 @@ async def _collect_stream(resp_body: dict, headers: dict, model: str) -> dict:
                         out = r.get("output", [])
                         has_tool = any(i.get("type") == "function_call" for i in out)
                         stop_reason = "tool_use" if has_tool else "end_turn"
+
+                        # 응답 완료 로깅
+                        print(f"[proxy] ✅ Response completed | stop_reason: {stop_reason} | "
+                              f"has_tool: {has_tool} | tokens: {input_tokens}→{output_tokens}")
 
     # 아직 닫히지 않은 텍스트 블록
     if current_text:

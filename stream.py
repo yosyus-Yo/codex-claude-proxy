@@ -163,6 +163,10 @@ async def convert_stream(
             has_tool = any(i.get("type") == "function_call" for i in output)
             stop_reason = "tool_use" if has_tool else "end_turn"
 
+            # 스트리밍 응답 완료 로깅
+            print(f"[proxy] 🎬 Stream completed | stop_reason: {stop_reason} | "
+                  f"has_tool: {has_tool} | output_tokens: {output_tokens}")
+
             yield _sse("message_delta", {
                 "type": "message_delta",
                 "delta": {"stop_reason": stop_reason, "stop_sequence": None},
