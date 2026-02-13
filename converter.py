@@ -15,16 +15,16 @@ def anthropic_to_responses(body: dict) -> dict:
     # 실제 사용되는 모델
     actual_model = map_model(body.get("model", ""))
 
-    # system → instructions
-    instructions = ""
+    # system 메시지 구성
+    system_content = ""
     system = body.get("system")
     if system:
         if isinstance(system, list):
-            instructions = " ".join(
+            system_content = " ".join(
                 b.get("text", "") for b in system if b.get("type") == "text"
             )
         else:
-            instructions = system
+            system_content = system
 
     # 실제 모델 정보를 시스템 프롬프트에 추가
     if REVEAL_ACTUAL_MODEL:
@@ -32,10 +32,10 @@ def anthropic_to_responses(body: dict) -> dict:
             f"You are an AI assistant powered by OpenAI's {actual_model} model. "
             f"When asked about your model, identify yourself as {actual_model}, not Claude."
         )
-        if instructions:
-            instructions = f"{model_identity}\n\n{instructions}"
+        if system_content:
+            system_content = f"{model_identity}\n\n{system_content}"
         else:
-            instructions = model_identity
+            system_content = model_identity
 
     # 도구가 있을 때 도구 사용 지시 추가
     if body.get("tools"):
@@ -58,7 +58,15 @@ def anthropic_to_responses(body: dict) -> dict:
             "Always USE these tools instead of just explaining what you would do.\n"
             "Show your work by calling the appropriate tools."
         )
-        instructions = (instructions or "") + tool_instructions
+        system_content = (system_content or "") + tool_instructions
+
+    # system 메시지를 input의 첫 번째 항목으로 추가 (공식 Responses API 형식)
+    if system_content:
+        input_items.append({
+            "type": "message",
+            "role": "system",
+            "content": [{"type": "input_text", "text": system_content}],
+        })
 
     # 메시지 변환
     for msg in body.get("messages", []):
@@ -72,10 +80,8 @@ def anthropic_to_responses(body: dict) -> dict:
         "store": False,
     }
 
-    # Codex API는 instructions 필수
-    result["instructions"] = instructions or "You are a helpful assistant."
-
-    # Codex API는 max_output_tokens, temperature 미지원 → 제외
+    # instructions 파라미터 제거 (공식 Responses API에는 없음)
+    # system 메시지는 이미 input에 포함됨
 
     # tools 변환
     tools = body.get("tools")
@@ -86,7 +92,8 @@ def anthropic_to_responses(body: dict) -> dict:
         # 도구 변환 로깅
         tool_names = [t.get("name", "unknown") for t in tools]
         print(f"[converter] 🔧 Converting {len(tools)} tools: {', '.join(tool_names)}")
-        print(f"[converter] 🔧 tool_choice set to: auto (with explicit instructions)")
+        print(f"[converter] 🔧 tool_choice set to: auto")
+        print(f"[converter] 🔧 system message added to input (not instructions)")
 
     return result
 
