@@ -1,80 +1,78 @@
 # Codex-Claude Proxy
 
-[한글 문서 (Korean)](README.ko.md)
+ChatGPT Plus/Pro 구독의 OAuth 토큰을 사용하여 Claude Code에서 OpenAI Codex 모델을 사용할 수 있게 해주는 프록시입니다.
 
-Use OpenAI Codex models in Claude Code using your ChatGPT Plus/Pro subscription OAuth token.
+Anthropic의 Messages API 형식을 ChatGPT의 Responses API 형식으로 변환하여, 기존 ChatGPT 구독으로 Claude Code와 통신할 수 있습니다 — 별도의 API 크레딧이 필요 없습니다.
 
-This proxy translates Anthropic's Messages API format into ChatGPT's Responses API format, allowing Claude Code to communicate with OpenAI's Codex backend using your existing ChatGPT subscription — no separate API credits needed.
-
-## How It Works
+## 동작 원리
 
 ```
 Claude Code  ──(Anthropic Messages API)──>  Proxy (localhost:8082)
                                                │
                                                ▼
-                                        Format Translation
-                                     (Messages → Responses API)
+                                        형식 변환
+                                  (Messages → Responses API)
                                                │
                                                ▼
-ChatGPT Backend  <──(Responses API + OAuth)──  Proxy
+ChatGPT 백엔드  <──(Responses API + OAuth)──  Proxy
 (chatgpt.com/backend-api/codex/responses)
 ```
 
-**Model Mapping:**
+**모델 매핑:**
 
-| Claude Code requests | Proxy sends |
-|---------------------|-------------|
+| Claude Code 요청 | 프록시가 전송하는 모델 |
+|------------------|---------------------|
 | claude-opus-* | gpt-5.3-codex |
 | claude-sonnet-* | gpt-5.3-codex |
 | claude-haiku-* | gpt-5.3-codex |
 
-> All models default to `gpt-5.3-codex`. You can change this — see [Custom Model Mapping](#custom-model-mapping).
+> 모든 모델은 기본적으로 `gpt-5.3-codex`를 사용합니다. 변경 방법은 [모델 커스터마이징](#모델-커스터마이징)을 참조하세요.
 
-## Prerequisites
+## 필요 사항
 
 - **Python 3.11+**
-- **ChatGPT Plus or Pro subscription**
-- **OpenAI Codex CLI** (for OAuth login)
-- **Claude Code** installed
+- **ChatGPT Plus 또는 Pro 구독**
+- **OpenAI Codex CLI** (OAuth 로그인용)
+- **Claude Code** 설치
 
-## Setup
+## 설치 방법
 
-### 1. Install OpenAI Codex CLI and Login
+### 1. OpenAI Codex CLI 설치 및 로그인
 
 ```bash
-# Install Codex CLI
+# Codex CLI 설치
 npm install -g @openai/codex
 
-# Login with your ChatGPT account
+# ChatGPT 계정으로 로그인
 codex login
 ```
 
-This creates `~/.codex/auth.json` with your OAuth tokens.
+이 과정에서 `~/.codex/auth.json`에 OAuth 토큰이 생성됩니다.
 
-### 2. Clone and Install
+### 2. 프록시 클론 및 설치
 
 ```bash
 git clone https://github.com/yosyus-Yo/codex-claude-proxy.git
 cd codex-claude-proxy
 
-# Create virtual environment and install dependencies
+# 가상환경 생성 및 의존성 설치
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
-### 3. Logout from Claude Code (one-time)
+### 3. Claude Code에서 로그아웃 (최초 1회)
 
 ```bash
 claude /logout
 ```
 
-This is required so Claude Code uses the proxy instead of its native Anthropic authentication.
+프록시를 사용하기 위해 기존 Anthropic 인증을 제거합니다.
 
-### 4. Start the Proxy
+### 4. 프록시 시작 및 사용
 
-**Option A: Quick Setup with zsh alias (Recommended)**
+**옵션 A: 간편 설정 (zsh alias 사용 - 추천)**
 
-1. **Copy the zsh config:**
+1. **zsh 설정 적용:**
 
 ```bash
 cp .zshrc-codex-proxy ~/.zshrc-codex-proxy
@@ -82,122 +80,123 @@ echo 'source ~/.zshrc-codex-proxy' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-2. **Usage:**
+2. **사용:**
 
 ```bash
-ccy       # Auto-start proxy + launch Claude Code with Codex models
-cpstop    # Stop proxy if needed
+ccy       # 프록시 자동 시작 + Codex 모델 Claude Code 실행
+cpstop    # 프록시 종료
 ```
 
-The `ccy` command automatically starts the proxy if it's not running, or uses the existing one if it's already running.
+`ccy` 명령어는 프록시가 실행 중이 아니면 자동으로 시작하고, 이미 실행 중이면 바로 Claude Code를 엽니다.
 
-**Option B: Manual execution (recommended for seeing logs)**
+**옵션 B: 수동 실행 (로그 확인용 추천)**
 
-Terminal 1 — Start proxy:
+터미널 1 — 프록시 실행:
 ```bash
 cd codex-claude-proxy
 .venv/bin/python server.py
 ```
 
-Terminal 2 — Start Claude Code:
+터미널 2 — Claude Code 실행:
 ```bash
-ANTHROPIC_AUTH_TOKEN="sk-proxy" ANTHROPIC_BASE_URL=http://localhost:8082 claude
+ANTHROPIC_AUTH_TOKEN="sk-proxy-codex" ANTHROPIC_BASE_URL=http://localhost:8082 claude
 ```
 
-**Option C: All-in-one with start.sh**
+**옵션 C: start.sh 사용 (올인원)**
 
 ```bash
 ./start.sh claude
 ```
 
-This starts the proxy in the background and launches Claude Code automatically.
+프록시를 백그라운드로 실행하고 Claude Code를 자동으로 엽니다.
 
-### 5. Verify
+### 5. 검증
 
-In the proxy terminal, you should see logs like:
+프록시 터미널에서 다음과 같은 로그가 보여야 합니다:
 ```
 [proxy] claude-sonnet-4-5-20250929 → gpt-5.3-codex | stream=True
 INFO:     127.0.0.1:62670 - "POST /v1/messages?beta=true HTTP/1.1" 200 OK
 ```
 
-## Switching Back to Anthropic
+## Anthropic API로 돌아가기
 
-To return to using Anthropic's native API:
+Anthropic의 네이티브 API를 다시 사용하려면:
 
 ```bash
 claude /login
 ```
 
-Then start Claude Code normally without environment variables.
+그리고 환경변수 없이 Claude Code를 실행하세요.
 
-## Configuration
+## 설정
 
-### Environment Variables
+### 환경변수
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PROXY_PORT` | `8082` | Proxy server port |
-| `CHATGPT_API_URL` | `https://chatgpt.com/backend-api/codex/responses` | ChatGPT backend URL |
-| `CODEX_BIG_MODEL` | `gpt-5.3-codex` | Model for Opus/Sonnet requests |
-| `CODEX_SMALL_MODEL` | `gpt-5.3-codex-spark` | Model for Haiku requests |
-| `CODEX_THINKING_MODEL` | `gpt-5.3-codex` | Model for thinking/reasoning |
+| 변수 | 기본값 | 설명 |
+|------|--------|------|
+| `PROXY_PORT` | `8082` | 프록시 서버 포트 |
+| `CHATGPT_API_URL` | `https://chatgpt.com/backend-api/codex/responses` | ChatGPT 백엔드 URL |
+| `CODEX_BIG_MODEL` | `gpt-5.3-codex` | Opus/Sonnet 요청용 모델 |
+| `CODEX_SMALL_MODEL` | `gpt-5.3-codex` | Haiku 요청용 모델 |
+| `CODEX_THINKING_MODEL` | `gpt-5.3-codex` | 사고/추론용 모델 |
 
-### Custom Model Mapping
+### 모델 커스터마이징
 
-All models default to `gpt-5.3-codex`. Override via environment variables or by editing `models.py` directly:
+모든 모델은 기본적으로 `gpt-5.3-codex`를 사용합니다. 환경변수 또는 `models.py` 직접 수정으로 변경 가능합니다:
 
 ```bash
-# Use different models per role
+# 역할별로 다른 모델 사용
 CODEX_BIG_MODEL=gpt-5.2-codex \
 CODEX_SMALL_MODEL=gpt-5.3-codex-spark \
 CODEX_THINKING_MODEL=gpt-5.3-codex \
 .venv/bin/python server.py
 ```
 
-Or edit `models.py`:
+또는 `models.py` 수정:
 
 ```python
-BIG_MODEL = os.getenv("CODEX_BIG_MODEL", "gpt-5.3-codex")       # sonnet → this
-SMALL_MODEL = os.getenv("CODEX_SMALL_MODEL", "gpt-5.3-codex")   # haiku → this
-THINKING_MODEL = os.getenv("CODEX_THINKING_MODEL", "gpt-5.3-codex")  # opus → this
+BIG_MODEL = os.getenv("CODEX_BIG_MODEL", "gpt-5.3-codex")       # sonnet → 여기
+SMALL_MODEL = os.getenv("CODEX_SMALL_MODEL", "gpt-5.3-codex")   # haiku → 여기
+THINKING_MODEL = os.getenv("CODEX_THINKING_MODEL", "gpt-5.3-codex")  # opus → 여기
 ```
 
-**Available Codex models:**
+**사용 가능한 Codex 모델:**
 
-| Model | Description |
-|-------|-------------|
-| `gpt-5.3-codex` | Most capable coding model |
-| `gpt-5.3-codex-spark` | Faster, lighter responses |
-| `gpt-5.2-codex` | Previous version |
+| 모델 | 설명 |
+|------|------|
+| `gpt-5.3-codex` | 가장 강력한 코딩 모델 |
+| `gpt-5.3-codex-spark` | 빠르고 가벼운 응답 |
+| `gpt-5.2-codex` | 이전 버전 |
 
-## Project Structure
+## 프로젝트 구조
 
 ```
 codex-claude-proxy/
-├── server.py          # FastAPI proxy server
-├── auth.py            # OAuth token management (read/refresh ~/.codex/auth.json)
-├── converter.py       # Anthropic Messages API ↔ ChatGPT Responses API conversion
-├── stream.py          # SSE streaming event translation
-├── models.py          # Model name mapping (Anthropic → Codex)
-├── start.sh           # One-click launcher script
-└── requirements.txt   # Python dependencies
+├── server.py          # FastAPI 프록시 서버
+├── auth.py            # OAuth 토큰 관리 (~/.codex/auth.json 읽기/갱신)
+├── converter.py       # Anthropic Messages API ↔ ChatGPT Responses API 변환
+├── stream.py          # SSE 스트리밍 이벤트 변환
+├── models.py          # 모델 이름 매핑 (Anthropic → Codex)
+├── start.sh           # 원클릭 실행 스크립트
+├── .zshrc-codex-proxy # zsh alias 설정 파일
+└── requirements.txt   # Python 의존성
 ```
 
-## API Translation Details
+## API 변환 상세
 
-### Request Translation (Anthropic → Responses API)
+### 요청 변환 (Anthropic → Responses API)
 
 | Anthropic | Responses API |
 |-----------|---------------|
 | `system` | `instructions` |
 | `messages[].content` (user) | `input[].content[].type: "input_text"` |
 | `messages[].content` (assistant) | `input[].content[].type: "output_text"` |
-| `tool_use` blocks | `function_call` items |
-| `tool_result` blocks | `function_call_output` items |
-| `max_tokens` | *(removed — Codex API doesn't support it)* |
-| `temperature` | *(removed — Codex API doesn't support it)* |
+| `tool_use` 블록 | `function_call` 항목 |
+| `tool_result` 블록 | `function_call_output` 항목 |
+| `max_tokens` | *(제거됨 — Codex API 미지원)* |
+| `temperature` | *(제거됨 — Codex API 미지원)* |
 
-### Response Translation (Responses API → Anthropic)
+### 응답 변환 (Responses API → Anthropic)
 
 | Responses API | Anthropic |
 |---------------|-----------|
@@ -205,32 +204,36 @@ codex-claude-proxy/
 | `response.function_call_arguments.delta` | `content_block_delta` (input_json_delta) |
 | `response.completed` | `message_delta` + `message_stop` |
 
-## Troubleshooting
+## 문제 해결
 
 ### "SessionStart:startup hook error"
 
-This is from Claude Code's plugin hooks, not the proxy. The proxy is working correctly. You can safely ignore this error.
+Claude Code의 플러그인 hook 오류이며, 프록시와는 무관합니다. 프록시는 정상 작동 중입니다. 이 오류는 무시해도 됩니다.
 
 ### "model not supported when using Codex with a ChatGPT account"
 
-Only Codex-specific models work with ChatGPT OAuth. Make sure `models.py` uses `gpt-5.3-codex` or `gpt-5.3-codex-spark`. Standard models like `gpt-4o` or `o4-mini` are not supported.
+ChatGPT OAuth로는 Codex 전용 모델만 작동합니다. `models.py`가 `gpt-5.3-codex` 또는 `gpt-5.3-codex-spark`를 사용하는지 확인하세요. `gpt-4o`나 `o4-mini` 같은 일반 모델은 지원되지 않습니다.
 
 ### "Instructions are required"
 
-The Codex API requires the `instructions` field. The proxy automatically adds a default instruction if none is provided via the system message.
+Codex API는 `instructions` 필드가 필수입니다. 프록시가 system 메시지가 없으면 자동으로 기본 instruction을 추가합니다.
 
 ### "Stream must be set to true"
 
-The Codex API only supports streaming. The proxy handles this internally — even non-streaming requests are collected via streaming.
+Codex API는 스트리밍만 지원합니다. 프록시가 내부적으로 처리합니다 — non-streaming 요청도 스트리밍으로 수집됩니다.
 
-### Token expired
+### 토큰 만료
 
-The proxy auto-refreshes expired OAuth tokens using the refresh token in `~/.codex/auth.json`. If refresh fails, re-run `codex login`.
+프록시는 `~/.codex/auth.json`의 refresh token을 사용하여 만료된 OAuth 토큰을 자동 갱신합니다. 갱신 실패 시 `codex login`을 다시 실행하세요.
 
-### Claude Code shows "Opus 4.6" or "Sonnet 4.5" model name
+### Claude Code에서 "Opus 4.6" 또는 "Sonnet 4.5" 모델명 표시
 
-This is Claude Code's UI displaying its configured model name. The actual model being used is the Codex model shown in proxy logs (e.g., `gpt-5.3-codex`).
+Claude Code의 UI가 설정된 모델명을 표시하는 것입니다. 실제로 사용되는 모델은 프록시 로그에 표시되는 Codex 모델입니다 (예: `gpt-5.3-codex`).
 
-## License
+### 프록시를 계속 켜두어도 되나요?
+
+네, 프록시는 stateless 서버이므로 메모리도 적게 사용하고 계속 켜두셔도 됩니다. `ccy` 명령어를 사용하면 자동으로 관리되므로 신경쓸 필요가 없습니다.
+
+## 라이선스
 
 MIT
