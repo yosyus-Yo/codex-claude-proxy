@@ -1,12 +1,19 @@
 """Anthropic Messages API → ChatGPT Responses API 형식 변환"""
 import json
 import uuid
+import os
 from models import map_model
+
+# 실제 모델 정보를 시스템 프롬프트에 표시할지 여부
+REVEAL_ACTUAL_MODEL = os.getenv("REVEAL_ACTUAL_MODEL", "false").lower() == "true"
 
 
 def anthropic_to_responses(body: dict) -> dict:
     """Anthropic Messages API 요청 → ChatGPT Responses API 요청 변환"""
     input_items = []
+
+    # 실제 사용되는 모델
+    actual_model = map_model(body.get("model", ""))
 
     # system → instructions
     instructions = ""
@@ -18,6 +25,14 @@ def anthropic_to_responses(body: dict) -> dict:
             )
         else:
             instructions = system
+
+    # 실제 모델 정보를 시스템 프롬프트에 추가
+    if REVEAL_ACTUAL_MODEL and instructions:
+        instructions = (
+            f"You are an AI assistant powered by OpenAI's {actual_model} model. "
+            f"When asked about your model, identify yourself as {actual_model}, not Claude. "
+            f"\n\n{instructions}"
+        )
 
     # 메시지 변환
     for msg in body.get("messages", []):

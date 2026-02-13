@@ -16,6 +16,20 @@ ccy() {
   claude --dangerously-skip-permissions "$@"
 }
 
+# Codex 모델 정체성 공개 버전 (gpt-5.3-codex로 자신을 소개)
+ccy-reveal() {
+  # 기존 프록시 종료 후 REVEAL 모드로 재시작
+  lsof -ti:8082 | xargs kill -9 2>/dev/null
+  echo "🚀 Starting Codex proxy with REVEAL_ACTUAL_MODEL..."
+  (cd /Users/seohun/Documents/codex-claude-proxy && REVEAL_ACTUAL_MODEL=true .venv/bin/python server.py &>/dev/null &)
+  sleep 2
+
+  # Claude Code 실행
+  ANTHROPIC_AUTH_TOKEN="sk-proxy-codex" \
+  ANTHROPIC_BASE_URL=http://localhost:8082 \
+  claude --dangerously-skip-permissions "$@"
+}
+
 # 프록시 관리
 codex-proxy-start() {
   cd /Users/seohun/Documents/codex-claude-proxy && .venv/bin/python server.py &
