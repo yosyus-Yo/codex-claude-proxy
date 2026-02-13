@@ -27,12 +27,15 @@ def anthropic_to_responses(body: dict) -> dict:
             instructions = system
 
     # 실제 모델 정보를 시스템 프롬프트에 추가
-    if REVEAL_ACTUAL_MODEL and instructions:
-        instructions = (
+    if REVEAL_ACTUAL_MODEL:
+        model_identity = (
             f"You are an AI assistant powered by OpenAI's {actual_model} model. "
-            f"When asked about your model, identify yourself as {actual_model}, not Claude. "
-            f"\n\n{instructions}"
+            f"When asked about your model, identify yourself as {actual_model}, not Claude."
         )
+        if instructions:
+            instructions = f"{model_identity}\n\n{instructions}"
+        else:
+            instructions = model_identity
 
     # 메시지 변환
     for msg in body.get("messages", []):
