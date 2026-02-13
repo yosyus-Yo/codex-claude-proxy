@@ -1,26 +1,15 @@
 # Codex-Claude Proxy Integration
 # Source this in your ~/.zshrc: source ~/Documents/에이전트/infiniteAgent/self-evolving-agent-system/.zshrc-codex-proxy
 
-# Claude Code with Codex models (프록시 자동 시작)
+# Claude Code with Codex models (프록시 자동 시작, 모델 정체성 공개)
 ccy() {
-  # 프록시가 실행 중인지 확인
-  if ! lsof -i:8082 -P | grep -q LISTEN; then
-    echo "🚀 Starting Codex proxy..."
-    (cd /Users/seohun/Documents/codex-claude-proxy && .venv/bin/python server.py &>/dev/null &)
-    sleep 2
+  # 기존 프록시 종료 후 REVEAL 모드로 재시작
+  if lsof -i:8082 -P | grep -q LISTEN; then
+    lsof -ti:8082 | xargs kill -9 2>/dev/null
+    sleep 1
   fi
 
-  # Claude Code 실행
-  ANTHROPIC_AUTH_TOKEN="sk-proxy-codex" \
-  ANTHROPIC_BASE_URL=http://localhost:8082 \
-  claude --dangerously-skip-permissions "$@"
-}
-
-# Codex 모델 정체성 공개 버전 (gpt-5.3-codex로 자신을 소개)
-ccy-reveal() {
-  # 기존 프록시 종료 후 REVEAL 모드로 재시작
-  lsof -ti:8082 | xargs kill -9 2>/dev/null
-  echo "🚀 Starting Codex proxy with REVEAL_ACTUAL_MODEL..."
+  echo "🚀 Starting Codex proxy (REVEAL_ACTUAL_MODEL=true)..."
   (cd /Users/seohun/Documents/codex-claude-proxy && REVEAL_ACTUAL_MODEL=true .venv/bin/python server.py &>/dev/null &)
   sleep 2
 
