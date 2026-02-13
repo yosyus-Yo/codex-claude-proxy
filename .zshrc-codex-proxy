@@ -13,9 +13,10 @@ ccy() {
   (cd /Users/seohun/Documents/codex-claude-proxy && REVEAL_ACTUAL_MODEL=true .venv/bin/python server.py &>/dev/null &)
   sleep 2
 
-  # Claude Code 실행
+  # Claude Code 실행 (단일 모델 강제)
   ANTHROPIC_AUTH_TOKEN="sk-proxy-codex" \
   ANTHROPIC_BASE_URL=http://localhost:8082 \
+  ANTHROPIC_MODEL=claude-sonnet-4-5-20250929 \
   claude --dangerously-skip-permissions "$@"
 }
 

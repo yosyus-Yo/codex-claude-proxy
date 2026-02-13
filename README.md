@@ -102,8 +102,13 @@ cd codex-claude-proxy
 
 터미널 2 — Claude Code 실행:
 ```bash
-ANTHROPIC_AUTH_TOKEN="sk-proxy-codex" ANTHROPIC_BASE_URL=http://localhost:8082 claude
+ANTHROPIC_AUTH_TOKEN="sk-proxy-codex" \
+ANTHROPIC_BASE_URL=http://localhost:8082 \
+ANTHROPIC_MODEL=claude-sonnet-4-5-20250929 \
+claude
 ```
+
+> **`ANTHROPIC_MODEL` 환경변수**: 단일 모델을 강제 지정하여 내부 모델 라우팅 최소화 (선택사항)
 
 **옵션 C: start.sh 사용 (올인원)**
 
@@ -229,6 +234,24 @@ Codex API는 스트리밍만 지원합니다. 프록시가 내부적으로 처�
 ### 토큰 만료
 
 프록시는 `~/.codex/auth.json`의 refresh token을 사용하여 만료된 OAuth 토큰을 자동 갱신합니다. 갱신 실패 시 `codex login`을 다시 실행하세요.
+
+### 왜 하나의 질문에 여러 모델 요청이 발생하나요?
+
+Claude Code는 내부적으로 **여러 단계**를 거칩니다:
+
+1. **분석 단계** (haiku, stream=False): 프롬프트 분석 및 복잡도 판단
+2. **모델 선택** (haiku/sonnet): 적절한 모델 자동 선택
+3. **응답 생성** (선택된 모델, stream=True): 실제 답변 생성
+
+이것은 **정상적인 동작**이며 프록시의 문제가 아닙니다. 프록시는 단순히 요청을 전달만 합니다.
+
+**요청 수 줄이기**: `ANTHROPIC_MODEL` 환경변수로 단일 모델을 강제 지정하면 일부 내부 라우팅을 줄일 수 있습니다:
+
+```bash
+ANTHROPIC_MODEL=claude-sonnet-4-5-20250929 ccy
+```
+
+`ccy` 명령어는 이미 이 환경변수를 포함하고 있습니다.
 
 ### Claude Code에서 "Opus 4.6" 또는 "Sonnet 4.5" 모델명 표시
 
