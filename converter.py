@@ -26,21 +26,10 @@ def anthropic_to_responses(body: dict) -> dict:
         else:
             system_content = system
 
-    # 실제 모델 정보를 시스템 프롬프트에 추가
-    if REVEAL_ACTUAL_MODEL:
-        model_identity = (
-            f"You are an AI assistant powered by OpenAI's {actual_model} model. "
-            f"When asked about your model, identify yourself as {actual_model}, not Claude."
-        )
-        if system_content:
-            system_content = f"{model_identity}\n\n{system_content}"
-        else:
-            system_content = model_identity
-
-    # 도구가 있을 때 도구 사용 지시 추가
+    # 도구가 있을 때 도구 사용 지시를 맨 앞에 추가 (가장 먼저 보도록)
     if body.get("tools"):
         tool_instructions = (
-            "\n\n=== CRITICAL TOOL USAGE PROTOCOL ===\n"
+            "=== CRITICAL TOOL USAGE PROTOCOL (READ THIS FIRST) ===\n"
             "You have tools available. When the user asks you to perform ANY action:\n"
             "1. FIRST call the appropriate tool immediately\n"
             "2. THEN provide your response after seeing the tool's result\n"
@@ -63,9 +52,18 @@ def anthropic_to_responses(body: dict) -> dict:
             "User: \"read the README file\"\n"
             "You: \"I'll read the README file for you...\" [WITHOUT calling tool] ❌\n"
             "\n"
-            "Remember: Actions speak louder than words. Use tools, don't just talk about using them."
+            "Remember: Actions speak louder than words. Use tools, don't just talk about using them.\n"
+            "=== END CRITICAL PROTOCOL ===\n\n"
         )
-        system_content = (system_content or "") + tool_instructions
+        system_content = tool_instructions + (system_content or "")
+
+    # 실제 모델 정보를 시스템 프롬프트에 추가 (도구 지시 다음에)
+    if REVEAL_ACTUAL_MODEL:
+        model_identity = (
+            f"You are an AI assistant powered by OpenAI's {actual_model} model. "
+            f"When asked about your model, identify yourself as {actual_model}, not Claude.\n\n"
+        )
+        system_content = model_identity + system_content if system_content else model_identity
 
     # 메시지 변환 (system은 input에 넣지 않고 instructions로 사용)
     for msg in body.get("messages", []):
