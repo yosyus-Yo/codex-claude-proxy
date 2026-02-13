@@ -3,15 +3,14 @@
 
 # Claude Code with Codex models (프록시 자동 시작, 모델 정체성 공개)
 ccy() {
-  # 기존 프록시 종료 후 REVEAL 모드로 재시작
-  if lsof -i:8082 -P | grep -q LISTEN; then
-    lsof -ti:8082 | xargs kill -9 2>/dev/null
-    sleep 1
+  # 프록시가 실행 중이 아니면 자동 시작
+  if ! lsof -i:8082 -P | grep -q LISTEN; then
+    echo "🚀 Starting Codex proxy (REVEAL_ACTUAL_MODEL=true)..."
+    (cd /Users/seohun/Documents/codex-claude-proxy && REVEAL_ACTUAL_MODEL=true .venv/bin/python server.py &>/dev/null &)
+    sleep 2
+  else
+    echo "✅ Proxy already running on port 8082"
   fi
-
-  echo "🚀 Starting Codex proxy (REVEAL_ACTUAL_MODEL=true)..."
-  (cd /Users/seohun/Documents/codex-claude-proxy && REVEAL_ACTUAL_MODEL=true .venv/bin/python server.py &>/dev/null &)
-  sleep 2
 
   # Claude Code 실행
   ANTHROPIC_AUTH_TOKEN="sk-proxy-codex" \
