@@ -40,23 +40,30 @@ def anthropic_to_responses(body: dict) -> dict:
     # 도구가 있을 때 도구 사용 지시 추가
     if body.get("tools"):
         tool_instructions = (
-            "\n\nIMPORTANT: You have access to tools that you MUST use to complete tasks:\n"
-            "- When you need to read a file, use the Read tool\n"
-            "- When you need to search for files or patterns, use the Glob or Grep tool\n"
-            "- When you need to run commands, use the Bash tool\n"
-            "- When you need to edit files, use the Edit tool\n"
-            "- When you need to write new files, use the Write tool\n"
+            "\n\n=== CRITICAL TOOL USAGE PROTOCOL ===\n"
+            "You have tools available. When the user asks you to perform ANY action:\n"
+            "1. FIRST call the appropriate tool immediately\n"
+            "2. THEN provide your response after seeing the tool's result\n"
             "\n"
-            "Work flow with status indicators:\n"
-            "1. Exploring: When searching for files or understanding code structure\n"
-            "   - Use Read, Grep, Glob tools\n"
-            "   - Show 'Exploring...' then 'Explored' when done\n"
-            "2. Editing: When modifying or creating files\n"
-            "   - Use Edit, Write tools\n"
-            "   - Show 'Editing...' then 'Edited' when done\n"
+            "DO NOT just say \"I will read the file\" - actually call the Read tool NOW.\n"
+            "DO NOT explain what you would do - DO IT by calling tools.\n"
             "\n"
-            "Always USE these tools instead of just explaining what you would do.\n"
-            "Show your work by calling the appropriate tools."
+            "Available tools and when to use them:\n"
+            "- Read: When asked to read, view, check, or examine files\n"
+            "- Glob/Grep: When asked to find, search, or locate files or code\n"
+            "- Bash: When asked to run commands, execute scripts, or check system state\n"
+            "- Edit: When asked to modify, change, or update existing files\n"
+            "- Write: When asked to create new files or save content\n"
+            "\n"
+            "Example correct behavior:\n"
+            "User: \"read the README file\"\n"
+            "You: [IMMEDIATELY call Read tool with path]\n"
+            "\n"
+            "Example WRONG behavior (DO NOT do this):\n"
+            "User: \"read the README file\"\n"
+            "You: \"I'll read the README file for you...\" [WITHOUT calling tool] ❌\n"
+            "\n"
+            "Remember: Actions speak louder than words. Use tools, don't just talk about using them."
         )
         system_content = (system_content or "") + tool_instructions
 
@@ -86,6 +93,35 @@ def anthropic_to_responses(body: dict) -> dict:
         print(f"[converter] 🔧 Converting {len(tools)} tools: {', '.join(tool_names)}")
         print(f"[converter] 🔧 tool_choice set to: auto")
         print(f"[converter] 🔧 instructions required by Codex API (not in input)")
+
+    # 전체 요청 body 로깅 (디버깅용)
+    print("\n[converter] 📋 FULL REQUEST BODY:")
+    print(f"[converter]   model: {result['model']}")
+    print(f"[converter]   stream: {result['stream']}")
+    print(f"[converter]   instructions length: {len(result.get('instructions', ''))} chars")
+    if result.get("instructions"):
+        # instructions 앞뒤 200자만 표시
+        inst = result["instructions"]
+        if len(inst) > 400:
+            print(f"[converter]   instructions preview: {inst[:200]}...{inst[-200:]}")
+        else:
+            print(f"[converter]   instructions: {inst}")
+    print(f"[converter]   input items: {len(result['input'])} items")
+    for i, item in enumerate(result['input']):
+        item_type = item.get('type', 'unknown')
+        print(f"[converter]     [{i}] type: {item_type}, role: {item.get('role', 'N/A')}")
+        if item_type == "message":
+            content = item.get('content', [])
+            for c in content:
+                c_type = c.get('type', 'unknown')
+                if c_type in ['input_text', 'output_text']:
+                    text = c.get('text', '')
+                    preview = text[:100] if len(text) > 100 else text
+                    print(f"[converter]         {c_type}: {preview}...")
+    if result.get("tools"):
+        print(f"[converter]   tools: {len(result['tools'])} tools defined")
+        print(f"[converter]   tool_choice: {result.get('tool_choice', 'N/A')}")
+    print("[converter] 📋 END REQUEST BODY\n")
 
     return result
 
