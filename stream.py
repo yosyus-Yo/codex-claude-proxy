@@ -39,6 +39,11 @@ async def convert_stream(
 
         etype = event.get("type", "")
 
+        # function_call 관련 이벤트 상세 로깅
+        if "function_call" in etype:
+            print(f"[stream] 📋 Event: {etype}")
+            print(f"[stream] 📋 Event data: {json.dumps(event, ensure_ascii=False)[:200]}")
+
         # 텍스트 출력 시작
         if etype == "response.output_text.delta":
             if not in_text_block:
