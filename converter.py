@@ -171,9 +171,12 @@ def _convert_message(msg: dict) -> list[dict]:
                 tool_content = " ".join(
                     b.get("text", "") for b in tool_content if b.get("type") == "text"
                 )
+            # call_id가 비어있으면 자동 생성
+            call_id = block.get("tool_use_id", "") or f"call_{uuid.uuid4().hex[:24]}"
             items.append({
                 "type": "function_call_output",
-                "call_id": block.get("tool_use_id", ""),
+                "id": call_id,  # id 필드 추가 (Responses API 요구사항)
+                "call_id": call_id,
                 "output": str(tool_content),
             })
 
