@@ -60,6 +60,10 @@ def anthropic_to_responses(body: dict) -> dict:
         result["tools"] = [_convert_tool(t) for t in tools]
         result["tool_choice"] = "auto"
 
+        # 도구 변환 로깅
+        tool_names = [t.get("name", "unknown") for t in tools]
+        print(f"[converter] 🔧 Converting {len(tools)} tools: {', '.join(tool_names)}")
+
     return result
 
 
@@ -144,12 +148,20 @@ def _convert_message(msg: dict) -> list[dict]:
 
 def _convert_tool(tool: dict) -> dict:
     """Anthropic tool → Responses API function tool"""
-    return {
+    converted = {
         "type": "function",
         "name": tool.get("name", ""),
         "description": tool.get("description", ""),
         "parameters": tool.get("input_schema", {"type": "object"}),
     }
+
+    # 도구별 상세 로깅 (첫 3개만)
+    name = converted["name"]
+    if name:
+        param_count = len(converted["parameters"].get("properties", {}))
+        print(f"[converter]    • {name}: {param_count} parameters")
+
+    return converted
 
 
 def responses_to_anthropic(resp_data: dict, model: str) -> dict:

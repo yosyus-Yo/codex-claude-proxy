@@ -74,6 +74,9 @@ async def convert_stream(
             # 새 function_call 블록이면 시작 이벤트
             if not hasattr(convert_stream, f"_fc_{call_id}"):
                 setattr(convert_stream, f"_fc_{call_id}", True)
+                tool_name = event.get("name", "")
+                print(f"[stream] 🔨 Tool call started: {tool_name} (id: {call_id})")
+
                 if in_text_block:
                     yield _sse("content_block_stop", {
                         "type": "content_block_stop",
@@ -88,7 +91,7 @@ async def convert_stream(
                     "content_block": {
                         "type": "tool_use",
                         "id": call_id,
-                        "name": event.get("name", ""),
+                        "name": tool_name,
                         "input": {},
                     },
                 })
