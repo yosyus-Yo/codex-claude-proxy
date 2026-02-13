@@ -178,10 +178,19 @@ def _sse(event: str, data: dict) -> str:
 
 
 async def _iter_sse_lines(stream: AsyncIterator[bytes]) -> AsyncIterator[str]:
-    """바이트 스트림에서 SSE data: 라인 추출"""
+    """바이트 스트림에서 SSE data: 라인 추출 (UTF-8 안전)"""
+    import codecs
+
     buffer = ""
+    decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+
     async for chunk in stream:
-        text = chunk.decode("utf-8") if isinstance(chunk, bytes) else chunk
+        if isinstance(chunk, bytes):
+            # Incremental decoder를 사용하여 불완전한 UTF-8 문자 처리
+            text = decoder.decode(chunk, False)
+        else:
+            text = chunk
+
         buffer += text
         while "\n" in buffer:
             line, buffer = buffer.split("\n", 1)
@@ -190,3 +199,12 @@ async def _iter_sse_lines(stream: AsyncIterator[bytes]) -> AsyncIterator[str]:
                 payload = line[6:]
                 if payload != "[DONE]":
                     yield payload
+
+    # 마지막 남은 바이트 처리
+    final_text = decoder.decode(b"", True)
+    if final_text:
+        buffer += final_text
+        if buffer.strip().startswith("data: "):
+            payload = buffer.strip()[6:]
+            if payload != "[DONE]":
+                yield payload
