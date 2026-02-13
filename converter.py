@@ -37,6 +37,21 @@ def anthropic_to_responses(body: dict) -> dict:
         else:
             instructions = model_identity
 
+    # 도구가 있을 때 도구 사용 지시 추가
+    if body.get("tools"):
+        tool_instructions = (
+            "\n\nIMPORTANT: You have access to tools that you MUST use to complete tasks:\n"
+            "- When you need to read a file, use the Read tool\n"
+            "- When you need to search for files or patterns, use the Glob or Grep tool\n"
+            "- When you need to run commands, use the Bash tool\n"
+            "- When you need to edit files, use the Edit tool\n"
+            "- When you need to write new files, use the Write tool\n"
+            "\n"
+            "Always USE these tools instead of just explaining what you would do.\n"
+            "Show your work by calling the appropriate tools."
+        )
+        instructions = (instructions or "") + tool_instructions
+
     # 메시지 변환
     for msg in body.get("messages", []):
         items = _convert_message(msg)
@@ -58,13 +73,12 @@ def anthropic_to_responses(body: dict) -> dict:
     tools = body.get("tools")
     if tools:
         result["tools"] = [_convert_tool(t) for t in tools]
-        # Codex CLI처럼 도구 사용을 강제하기 위해 "required" 시도
-        result["tool_choice"] = "required"
+        result["tool_choice"] = "auto"
 
         # 도구 변환 로깅
         tool_names = [t.get("name", "unknown") for t in tools]
         print(f"[converter] 🔧 Converting {len(tools)} tools: {', '.join(tool_names)}")
-        print(f"[converter] 🔧 tool_choice set to: required")
+        print(f"[converter] 🔧 tool_choice set to: auto (with explicit instructions)")
 
     return result
 
